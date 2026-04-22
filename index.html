@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DELEGA INJECTOR PRO</title>
+    <style>
+        :root {
+            --primary: #ff0000;
+            --bg: #000000;
+            --card: #0d0d0d;
+            --text: #ffffff;
+            --glow: 0 0 15px rgba(255, 0, 0, 0.7);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body { background: #000; color: var(--text); overflow: hidden; height: 100vh; width: 100vw; }
+
+        /* --- TELA DE CARREGAMENTO (SPLASH) --- */
+        #splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, #1a0000 0%, #000000 100%); 
+            z-index: 10000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; transition: opacity 0.8s ease;
+        }
+        .splash-logo { font-size: 45px; font-weight: 900; color: var(--primary); letter-spacing: 10px; text-shadow: var(--glow); margin-bottom: 50px; text-transform: uppercase; }
+        .progress-bar { width: 220px; height: 8px; background: #222; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
+        .progress-fill { width: 0%; height: 100%; background: var(--primary); box-shadow: var(--glow); }
+
+        /* --- APP CONTAINER --- */
+        .app-container { width: 100%; height: 100vh; display: flex; flex-direction: column; }
+
+        .nav-tabs { display: flex; background: #0a0a0a; border-bottom: 2px solid var(--primary); z-index: 10; }
+        .tab { flex: 1; padding: 18px; border: none; background: none; color: #444; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+        .tab.active { color: var(--primary); text-shadow: var(--glow); background: rgba(255,0,0,0.05); }
+
+        .content { flex: 1; overflow-y: auto; padding-bottom: 10px; background: #050505; }
+        .page { display: none; padding: 5px 0; }
+        .page.active { display: block; }
+
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 18px 25px; border-bottom: 1px solid #111; }
+        .row span { font-size: 12px; font-weight: bold; color: #bbb; text-transform: uppercase; }
+
+        /* Switch Mobile */
+        .switch { position: relative; width: 44px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #222; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 4px; bottom: 3px; background-color: #fff; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); box-shadow: var(--glow); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Console */
+        #console { background: #000; height: 100px; padding: 12px; font-size: 9px; color: #00ff00; overflow-y: auto; border-top: 1px solid #222; border-left: 4px solid var(--primary); font-family: monospace; line-height: 1.5; }
+
+        /* Footer Fixo */
+        .footer-btn {
+            width: 100%; padding: 22px; background: var(--primary); color: white;
+            border: none; font-weight: 900; font-size: 16px; text-transform: uppercase;
+            letter-spacing: 3px; cursor: pointer; z-index: 100;
+        }
+
+        /* --- OVERLAYS --- */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; text-align: center; }
+        input { width: 100%; padding: 18px; margin: 8px 0; background: #0a0a0a; border: 1px solid #222; color: white; text-align: center; font-size: 16px; border-radius: 8px; }
+        .hidden { display: none !important; }
+
+        #login-error { color: var(--primary); font-size: 12px; margin-bottom: 10px; font-weight: bold; }
+
+        /* BOM JOGO OVERLAY */
+        #gg-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 20000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .gg-text { font-size: 45px; color: var(--primary); font-weight: 900; text-shadow: var(--glow); animation: pulse 0.5s infinite alternate; }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+    </style>
+</head>
+<body>
+
+    <div id="splash">
+        <div class="splash-logo">DELEGA</div>
+        <div class="progress-bar"><div id="fill" class="progress-fill"></div></div>
+        <p id="percent" style="margin-top: 15px; font-size: 11px; color: #333; letter-spacing: 2px;">CARREGANDO SISTEMA...</p>
+    </div>
+
+    <div id="login-screen" class="overlay hidden">
+        <h2 style="color:var(--primary); margin-bottom: 30px; letter-spacing: 10px; font-size: 45px; font-weight: 900; text-shadow: var(--glow);">DELEGA</h2>
+        <div id="login-error"></div>
+        <input type="text" id="user" placeholder="LOGIN">
+        <input type="password" id="pass" placeholder="SENHA">
+        <label style="color:#333; font-size: 12px; margin: 15px 0; display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="remember"> LEMBRAR MEUS DADOS
+        </label>
+        <button onclick="validaLogin()" class="footer-btn" style="border-radius: 10px;">LOGAR NO PAINEL</button>
+    </div>
+
+    <div id="sub-screen" class="overlay hidden">
+        <h2 style="color:white; margin-bottom: 10px;">INSCREVA-SE</h2>
+        <p style="color:#444; margin-bottom: 25px; font-size: 14px;">Libere o acesso visitando o canal do DELEGA.</p>
+        <button onclick="irCanal()" style="background:#fff; color:#000; font-weight:900; padding:20px; width:100%; border-radius:10px; border:none; text-transform:uppercase;">Abrir YouTube</button>
+        <button onclick="validaSub()" style="margin-top:30px; background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer;">[ JÁ SOU INSCRITO ]</button>
+    </div>
+
+    <div id="warn-screen" class="overlay hidden">
+        <div style="border: 2px solid var(--primary); padding: 30px; border-radius: 15px; background: rgba(255,0,0,0.05); box-shadow: var(--glow);">
+            <h3 style="color:white; margin-bottom: 15px;">AVISO IMPORTANTE!</h3>
+            <p style="color:var(--primary); font-weight:900; font-size: 14px; text-transform: uppercase; line-height: 1.5;">
+                COLOQUE O ARQUIVO DA DESCRIÇÃO NA PASTA "DATA" PARA QUE AS FUNÇÕES SEJAM ATIVADAS!
+            </p>
+        </div>
+        <button onclick="abrirPainel()" class="footer-btn" style="width:100%; margin-top: 40px; border-radius: 10px;">CONTINUAR</button>
+    </div>
+
+    <div id="app-main" class="app-container hidden">
+        <div class="nav-tabs">
+            <button class="tab active" onclick="setTab('mira', this)">🎯 MIRA</button>
+            <button class="tab" onclick="setTab('boost', this)">⚡ BOOST</button>
+            <button class="tab" onclick="setTab('info', this)">👤 INFO</button>
+        </div>
+
+        <div class="content">
+            <div id="mira" class="page active">
+                <div class="row"><span>AIMLOCK HEAD (V1)</span> <label class="switch"><input type="checkbox" onchange="runLog('AIMLOCK')"><span class="slider"></span></label></div>
+                <div class="row"><span>AIM_FOV ASSIST</span> <label class="switch"><input type="checkbox" onchange="runLog('FOV')"><span class="slider"></span></label></div>
+                <div class="row"><span>NORECOIL STATIC</span> <label class="switch"><input type="checkbox" onchange="runLog('RECOIL')"><span class="slider"></span></label></div>
+                <div class="row"><span>HOLOGRAMA V1</span> <label class="switch"><input type="checkbox" onchange="runLog('HOLOGRAM')"><span class="slider"></span></label></div>
+                <div class="row"><span>SENSI_MACRO X/Y</span> <label class="switch"><input type="checkbox" onchange="runLog('SENSI')"><span class="slider"></span></label></div>
+                <div class="row"><span>AUXÍLIO_MIRA 80%</span> <label class="switch"><input type="checkbox" onchange="runLog('AUX')"><span class="slider"></span></label></div>
+            </div>
+
+            <div id="boost" class="page">
+                <div class="row"><span>FPS UNLOCK 90</span> <label class="switch"><input type="checkbox" onchange="runLog('FPS')"><span class="slider"></span></label></div>
+                <div class="row"><span>ESTABILIZAR PING</span> <label class="switch"><input type="checkbox" onchange="runLog('PING')"><span class="slider"></span></label></div>
+                <div class="row"><span>BYPASS SEGURANÇA</span> <label class="switch"><input type="checkbox" onchange="runLog('BYPASS')"><span class="slider"></span></label></div>
+                <div class="row"><span>ANTI_BAN DATABASE</span> <label class="switch"><input type="checkbox" onchange="runLog('ANTIBAN')"><span class="slider"></span></label></div>
+                <div class="row"><span>OTIMIZAR GPU</span> <label class="switch"><input type="checkbox" onchange="runLog('GPU')"><span class="slider"></span></label></div>
+            </div>
+
+            <div id="info" class="page">
+                <div style="text-align: center; padding: 40px;">
+                    <h2 style="color:var(--primary); letter-spacing: 2px;">DELEGA INJECTOR</h2>
+                    <p style="color:#333; margin: 20px 0; font-size: 11px;">BETA V1.0 | @BYDELEGA</p>
+                    <a href="https://youtube.com/@delegaytoficial?si=bfKXgYC_Es-BY__T" style="text-decoration:none; color:white; border:1px solid #222; padding:15px; display:block; border-radius:8px; font-weight:bold;">CANAL NO YOUTUBE</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="console">> READY FOR INJECTION...</div>
+        <button class="footer-btn" onclick="startGame()">ENTRAR NO FREE FIRE</button>
+    </div>
+
+    <div id="gg-overlay" class="hidden">
+        <div class="gg-text">BOM JOGO!!</div>
+        <p id="gg-status" style="color:#00ff00; margin-top: 15px; font-size: 12px; font-family: monospace; letter-spacing: 2px;">SINCRONIZANDO...</p>
+    </div>
+
+    <script>
+        // Splash Screen (3 segundos)
+        let count = 0;
+        let splashTimer = setInterval(() => {
+            count++;
+            document.getElementById('fill').style.width = count + "%";
+            document.getElementById('percent').innerText = count + "%";
+            if(count >= 100) {
+                clearInterval(splashTimer);
+                setTimeout(() => {
+                    document.getElementById('splash').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('splash').classList.add('hidden');
+                        document.getElementById('login-screen').classList.remove('hidden');
+                    }, 800);
+                }, 400);
+            }
+        }, 30);
+
+        // Lembrar dados
+        window.onload = () => {
+            if(localStorage.getItem('save_delega') === 'true') {
+                document.getElementById('user').value = localStorage.getItem('u_delega');
+                document.getElementById('pass').value = localStorage.getItem('p_delega');
+                document.getElementById('remember').checked = true;
+            }
+        };
+
+        function validaLogin() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            const err = document.getElementById('login-error');
+
+            if (u !== "DELEGA") { err.innerText = "ERRO: USUÁRIO INVÁLIDO!"; return; }
+            if (p !== "200") { err.innerText = "ERRO: SENHA INCORRETA!"; return; }
+
+            if(document.getElementById('remember').checked) {
+                localStorage.setItem('u_delega', u);
+                localStorage.setItem('p_delega', p);
+                localStorage.setItem('save_delega', 'true');
+            }
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('sub-screen').classList.remove('hidden');
+        }
+
+        function irCanal() { localStorage.setItem('yt_ok', 'true'); window.location.href = "https://youtube.com/@delegaytoficial?si=bfKXgYC_Es-BY__T"; }
+        
+        function validaSub() { 
+            if(localStorage.getItem('yt_ok')) {
+                document.getElementById('sub-screen').classList.add('hidden');
+                document.getElementById('warn-screen').classList.remove('hidden');
+            } else { alert("Acesse o canal primeiro!"); }
+        }
+        
+        function abrirPainel() { document.getElementById('warn-screen').classList.add('hidden'); document.getElementById('app-main').classList.remove('hidden'); }
+
+        function setTab(id, btn) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // Injeção Realista (5-6 segundos)
+        function runLog(m) {
+            const c = document.getElementById('console');
+            const h = () => Math.random().toString(16).substring(2, 8).toUpperCase();
+            const l = [
+                `> Localizing: com.dts.freefireth`,
+                `> Found offset: 0x${h()}`,
+                `> Applying patch: [${m}]`,
+                `> Bypass security check...`,
+                `> Status: ${m} ACTIVE!`
+            ];
+            let i = 0;
+            let t = setInterval(() => {
+                if(i < l.length) { c.innerHTML += `<br>${l[i]}`; c.scrollTop = c.scrollHeight; i++; }
+                else { clearInterval(t); }
+            }, 1200); 
+        }
+
+        // --- FUNÇÃO PARA ENTRAR NO JOGO SEM IR PRA PLAY STORE ---
+        function startGame() {
+            document.getElementById('gg-overlay').classList.remove('hidden');
+            const status = document.getElementById('gg-status');
+            
+            setTimeout(() => { status.innerText = "DADOS SINCRONIZADOS!"; }, 1500);
+            setTimeout(() => { status.innerText = "LANÇANDO FREE FIRE..."; }, 3000);
+
+            setTimeout(() => {
+                try {
+                    // Tenta a ponte direta com o seu APK (mais seguro)
+                    if(typeof Android !== "undefined" && Android.abrirFF) {
+                        Android.abrirFF();
+                    } else {
+                        // Força a abertura usando o esquema de intent específico do launcher
+                        // Esse código evita o redirect automático pra Play Store
+                        window.location.href = "intent://#Intent;package=com.dts.freefireth;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10000000;end";
+                    }
+                } catch(e) {}
+                
+                // Fecha o overlay depois de 3 segundos pra não ficar travado
+                setTimeout(() => document.getElementById('gg-overlay').classList.add('hidden'), 3000);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
